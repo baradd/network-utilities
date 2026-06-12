@@ -4,6 +4,12 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import * as net from 'net';
 import * as dgram from 'dgram';
+import { Resolver } from 'dns/promises';
+import {
+  PortRangeScanResult,
+  PortScanResult,
+} from './dtos/scan-range-port-response.dto';
+
 @Injectable()
 export class IpMonitorService {
   async test() {
@@ -74,5 +80,37 @@ export class IpMonitorService {
         client.once('error', () => done(false));
       });
     });
+  }
+
+  async checkDNS(
+    host: string,
+    dnsServer?: string,
+  ): Promise<{ alive: boolean; ips: string[] }> {
+    const resolver = new Resolver();
+    if (dnsServer) resolver.setServers([dnsServer]);
+
+    try {
+      const ips = await resolver.resolve4(host);
+      return { alive: true, ips };
+    } catch {
+      return { alive: false, ips: [] };
+    }
+  }
+
+  scanPortRange(
+    host: string,
+    startPort: number = 1,
+    endPort: number = 1024,
+    options: { timeout?: number; concurrency?: number },
+  ): Promise<PortRangeScanResult> {
+    const { concurrency = 50, timeout = 3000 } = options;
+    const startTime = Date.now();
+
+    const openPorts: PortScanResult[] = [];
+
+    const ports = Array.from(
+      { length: endPort - startPort + 1 },
+      (_, i) => startPort + i,
+    );
   }
 }
