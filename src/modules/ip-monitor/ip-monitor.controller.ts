@@ -7,6 +7,6 @@ export class IpMonitorController {
 
   @Get()
   checkAliveBulk() {
-    return this.ipMonitorService.checkAliveBulk();
+    return this.ipMonitorService.test();
   }
 }
