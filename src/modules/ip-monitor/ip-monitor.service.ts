@@ -17,7 +17,9 @@ export class IpMonitorService {
       encoding: 'utf-8',
     });
     const hosts = file.split('\n');
-    const res = await Promise.all(hosts.map((host) => this.checkTCP(host)));
+    const res = await Promise.all(
+      hosts.map((host) => this.scanPortRange(host, 80, 500, {})),
+    );
     console.log(res);
   }
 
@@ -40,7 +42,11 @@ export class IpMonitorService {
     return ping.promise.probe(host);
   }
 
-  checkTCP(host: string, port: number = 80, timeout: number = 3000) {
+  checkTCP(
+    host: string,
+    port: number = 80,
+    timeout: number = 3000,
+  ): Promise<boolean> {
     return new Promise((resolve) => {
       const socket = new net.Socket();
       socket.setTimeout(timeout);
@@ -97,7 +103,7 @@ export class IpMonitorService {
     }
   }
 
-  scanPortRange(
+  async scanPortRange(
     host: string,
     startPort: number = 1,
     endPort: number = 1024,
@@ -112,5 +118,25 @@ export class IpMonitorService {
       { length: endPort - startPort + 1 },
       (_, i) => startPort + i,
     );
+
+    //scan many ports together to avoid opening many sockets
+    for (let i = 0; i < ports.length; i += concurrency) {
+      const chunk = ports.slice(i, i + concurrency);
+      const result = await Promise.all(
+        chunk.map(async (port) => ({
+          port,
+          open: await this.checkTCP(host, port, timeout),
+        })),
+      );
+      openPorts.push(...result.filter((r) => r.open));
+    }
+    return {
+      host,
+      startPort,
+      endPort,
+      openPorts,
+      totalScanned: ports.length,
+      duration: Date.now() - startTime,
+    };
   }
 }
