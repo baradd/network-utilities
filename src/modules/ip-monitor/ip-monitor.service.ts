@@ -18,8 +18,9 @@ export class IpMonitorService {
     });
     const hosts = file.split('\n');
     const res = await Promise.all(
-      hosts.map((host) => this.scanPortRange(host, 80, 500, {})),
+      hosts.map((host) => this.scanPortRange(host, 20, 25, {})),
     );
+    return res;
     console.log(res);
   }
 
@@ -49,20 +50,22 @@ export class IpMonitorService {
   ): Promise<boolean> {
     return new Promise((resolve) => {
       const socket = new net.Socket();
+      let settled = false;
+
+      const done = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        resolve(result);
+      };
+
       socket.setTimeout(timeout);
       socket
-        .connect(port, host, () => {
-          socket.destroy();
-          resolve(true);
-        })
-        .on('timeout', () => {
-          socket.destroy();
-          resolve(false);
-        })
-        .on('error', () => resolve(false));
+        .connect(port, host, () => done(true))
+        .on('timeout', () => done(false))
+        .on('error', () => done(false));
     });
   }
-
   checkUDP(host: string, port: number, timeout = 3000): Promise<boolean> {
     return new Promise((resolve) => {
       const client = dgram.createSocket('udp4');
