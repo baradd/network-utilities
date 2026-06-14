@@ -62,10 +62,12 @@ export class IpMonitorService {
       };
 
       socket.setTimeout(timeout);
-      socket
-        .connect(port, host, () => done(true))
-        .on('timeout', () => done(false))
-        .on('error', () => done(false));
+
+      socket.connect(port, host);
+
+      socket.on('connect', () => done(true));
+      socket.on('timeout', () => done(false)); // idle timeout → close
+      socket.on('error', () => done(false)); // ECONNREFUSED, EHOSTUNREACH etc
     });
   }
 
