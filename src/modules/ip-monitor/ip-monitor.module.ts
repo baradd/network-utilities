@@ -5,6 +5,6 @@ import { IpMonitorService } from './ip-monitor.service';
 @Module({
   controllers: [IpMonitorController],
   providers: [IpMonitorService],
-  exports: [],
+  exports: [IpMonitorService],
 })
 export class IpMonitorModule {}
