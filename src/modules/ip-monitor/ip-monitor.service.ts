@@ -9,6 +9,8 @@ import {
   PortRangeScanResult,
   PortScanResult,
 } from './dtos/scan-range-port-response.dto';
+import { TraceHop, TracerouteResponse } from './dtos/traceroute-response.dto';
+import { spawn } from 'child_process';
 
 @Injectable()
 export class IpMonitorService {
@@ -18,7 +20,7 @@ export class IpMonitorService {
     });
     const hosts = file.split('\n');
     const res = await Promise.all(
-      hosts.map((host) => this.scanPortRange(host, 20, 25, {})),
+      hosts.map((host) => this.tranceroute(host, 6000)),
     );
     return res;
     console.log(res);
@@ -66,7 +68,12 @@ export class IpMonitorService {
         .on('error', () => done(false));
     });
   }
-  checkUDP(host: string, port: number, timeout = 3000): Promise<boolean> {
+
+  checkUDP(
+    host: string,
+    port: number,
+    timeout: number = 3000,
+  ): Promise<boolean> {
     return new Promise((resolve) => {
       const client = dgram.createSocket('udp4');
 
@@ -141,5 +148,88 @@ export class IpMonitorService {
       totalScanned: ports.length,
       duration: Date.now() - startTime,
     };
+  }
+
+  async tranceroute(
+    host: string,
+    timeout: number = 3000,
+  ): Promise<TracerouteResponse> {
+    const startTime = Date.now();
+    const command = 'traceroute';
+    const args = ['-n', '-w', '3', host];
+    //-n No DNS reverse - make it faster
+    // -w = wait 3 seconds per probe
+    return new Promise((resolve, reject) => {
+      const hops: TraceHop[] = [];
+      let settled = false;
+
+      if (!this.validateIp(host)) {
+        this.checkDNS(host).then((res) => (host = res.ips[0]));
+      }
+
+      const done = (result: TracerouteResponse) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(result);
+      };
+
+      const proc = spawn(command, args);
+      let output = '';
+
+      proc.stdout.on('data', (data: Buffer) => (output += data.toString()));
+      proc.stderr.on('data', (data: Buffer) => (output += data.toString()));
+
+      const timer = setTimeout(() => {
+        proc.kill();
+        done({ host, hops, duration: Date.now() - startTime, reached: false });
+      }, timeout);
+
+      proc.on('close', () => {
+        const lines = output.split('\n');
+        for (const line of lines) {
+          const hop = this.parseTracerouteLine(line);
+          if (hop) hops.push(hop);
+        }
+        const reached = hops.some((h) => h.ip === host || h.host === host);
+        done({ host, hops, duration: Date.now() - startTime, reached });
+      });
+
+      proc.on('error', reject);
+    });
+  }
+
+  parseTracerouteLine(line: string): TraceHop | null {
+    const clean = line.trim();
+    if (!clean || !/^\d+/.test(clean)) return null;
+
+    const hopMatch = clean.match(/^(\d+)\s+/);
+    if (!hopMatch) return null;
+    const hop = parseInt(hopMatch[1]);
+
+    // all timeouts
+    if (/^\d+\s+\*\s+\*\s+\*/.test(clean)) {
+      return { hop, host: null, ip: null, times: [null, null, null] };
+    }
+
+    const ipMatch = clean.match(/(\d+\.\d+\.\d+\.\d+)/);
+    const ip = ipMatch ? ipMatch[1] : null;
+
+    const timeMatches = [...clean.matchAll(/([\d.]+)\s+ms/g)];
+    const times = timeMatches.map((m) => parseFloat(m[1]));
+
+    return {
+      hop,
+      ip,
+      host: ip, // with -n flag, no hostname resolution
+      times: times.length ? times : [null, null, null],
+    };
+  }
+
+  validateIp(str: string) {
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6Regex = /^([\da-fA-F]{1,4}:){7}[\da-fA-F]{1,4}$/;
+
+    return str.match(ipv4Regex) || str.match(ipv6Regex);
   }
 }
