@@ -234,4 +234,37 @@ export class IpMonitorService {
 
     return str.match(ipv4Regex) || str.match(ipv6Regex);
   }
+
+  async checkHttp(
+    url: string,
+    timeout: number = 10000,
+  ): Promise<{
+    status: string;
+    statusCode?: number;
+    responseTime?: number;
+    error?: string;
+  }> {
+    if (!/^http?:\/\//i.test(url)) {
+      url = `http://${url}`;
+    }
+    const start = Date.now();
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(timeout),
+      });
+
+      const responseTime = Date.now() - start;
+      return {
+        status: response.status < 500 ? 'up' : 'down',
+        statusCode: response.status,
+        responseTime,
+      };
+    } catch (error) {
+      return {
+        status: 'down',
+        responseTime: Date.now() - start,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
 }

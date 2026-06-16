@@ -62,4 +62,10 @@ export class IpMonitorController {
   traceroute(@Query() dto: TracerouteDto) {
     return this.ipMonitorService.tranceroute(dto.host, dto.timeout);
   }
+
+  @Get('http')
+  @ApiOperation({ summary: 'Check if an HTTP endpoint is reachable' })
+  checkHttp(@Query('url') url: string, @Query('timeout') timeout?: number) {
+    return this.ipMonitorService.checkHttp(url, timeout);
+  }
 }
