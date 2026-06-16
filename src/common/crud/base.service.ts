@@ -1,6 +1,6 @@
 // core/database/services/base.service.ts
 import { NotFoundException } from '@nestjs/common';
-import { DeepPartial, FindOptionsWhere } from 'typeorm';
+import { DeepPartial, FindOptionsRelations, FindOptionsWhere } from 'typeorm';
 import { BaseRepository } from './base.repository';
 import { BaseEntity } from './base.entity';
 
@@ -35,6 +35,14 @@ export abstract class BaseService<T extends BaseEntity> {
 
   upsert(where: FindOptionsWhere<T>, data: DeepPartial<T>): Promise<T> {
     return this.repository.upsert(where, data);
+  }
+
+  upsertNested(
+    where: FindOptionsWhere<T>,
+    data: DeepPartial<T>,
+    relations?: FindOptionsRelations<T>,
+  ): Promise<T> {
+    return this.repository.upsertNested(where, data, relations);
   }
 
   softDelete(id: number): Promise<void> {

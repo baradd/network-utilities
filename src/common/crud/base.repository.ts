@@ -1,5 +1,10 @@
 // core/database/repositories/base.repository.ts
-import { Repository, DeepPartial, FindOptionsWhere } from 'typeorm';
+import {
+  Repository,
+  DeepPartial,
+  FindOptionsWhere,
+  FindOptionsRelations,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 
 export abstract class BaseRepository<T extends BaseEntity> {
@@ -40,6 +45,24 @@ export abstract class BaseRepository<T extends BaseEntity> {
     return this.create(data);
   }
 
+  async upsertNested(
+    where: FindOptionsWhere<T>,
+    data: DeepPartial<T>,
+    relations?: FindOptionsRelations<T>,
+  ): Promise<T> {
+    const existing = await this.repo.findOne({
+      where,
+      relations,
+    });
+
+    if (existing) {
+      this.mergeDeep(existing, data);
+      return this.repo.save(existing);
+    }
+
+    return this.repo.save(this.repo.create(data));
+  }
+
   softDelete(id: number): Promise<void> {
     return this.repo.softDelete(id).then();
   }
@@ -50,5 +73,20 @@ export abstract class BaseRepository<T extends BaseEntity> {
 
   count(where?: FindOptionsWhere<T>): Promise<number> {
     return this.repo.count({ where });
+  }
+
+  private mergeDeep(target: any, source: any): void {
+    for (const key of Object.keys(source)) {
+      if (
+        source[key] &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(source[key]) &&
+        target[key] // ← target[key] exists and has id
+      ) {
+        this.mergeDeep(target[key], source[key]); // recurse into nested
+      } else {
+        target[key] = source[key];
+      }
+    }
   }
 }
