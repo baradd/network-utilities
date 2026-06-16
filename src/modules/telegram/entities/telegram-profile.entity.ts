@@ -7,8 +7,8 @@ export class TelegramProfile extends BaseEntity {
   @Column({ unique: true })
   chatId: number;
 
-  @Column()
-  firstName: string;
+  @Column({ nullable: true })
+  firstName?: string;
 
   @Column({ nullable: true })
   lastName?: string;
@@ -18,6 +18,12 @@ export class TelegramProfile extends BaseEntity {
 
   @Column({ nullable: true })
   languageCode?: string;
+
+  @Column({ nullable: true })
+  chatType?: string;
+
+  @Column({ default: false })
+  isBot: boolean;
 
   @OneToOne(() => User, (user) => user.telegram)
   @JoinColumn()
