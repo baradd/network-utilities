@@ -1,7 +1,8 @@
 import { BaseEntity } from 'src/common/crud/base.entity';
 import { TelegramProfile } from 'src/modules/telegram/entities/telegram-profile.entity';
-import { Column, OneToOne } from 'typeorm';
+import { Column, Entity, OneToOne } from 'typeorm';
 
+@Entity()
 export class User extends BaseEntity {
   @Column({ nullable: true })
   firstName?: string;

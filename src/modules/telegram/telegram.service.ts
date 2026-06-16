@@ -41,9 +41,10 @@ export class TelegramService implements OnModuleInit {
           '/portscan <host> <startPort> <endPort> — Port range scan\n' +
           '/traceroute <host> — Traceroute\n',
       );
+
       this.userService
-        .upsert(
-          { telegram: { chatId: ctx.chat.id } }, // find by
+        .upsertNested(
+          { telegram: { chatId: ctx.chat.id } },
           {
             firstName: ctx.from.first_name,
             lastName: ctx.from.last_name,
@@ -57,6 +58,7 @@ export class TelegramService implements OnModuleInit {
               chatType: ctx.chat.type,
             },
           },
+          { telegram: true },
         )
         .catch((error) =>
           this.logger.error('Failed to save user and telegram profile', error),
