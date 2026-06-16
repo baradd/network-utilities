@@ -9,13 +9,20 @@ export class TelegramService implements OnModuleInit {
 
   constructor(private readonly ipMonitorService: IpMonitorService) {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
-    console.log(process.env.TELEGRAM_BOT_TOKEN);
   }
 
   onModuleInit() {
     this.registerCommands();
+    this.registerEvents();
     this.bot.launch();
     this.logger.log('Telegram bot started');
+  }
+
+  private registerEvents() {
+    this.bot.on('message', (ctx) => {
+      console.log(ctx.from);
+      console.log(ctx.chat);
+    });
   }
 
   private registerCommands() {
@@ -158,5 +165,9 @@ export class TelegramService implements OnModuleInit {
   private parseArgs(ctx: Context): string[] {
     const text = ctx.message?.['text'] ?? '';
     return text.split(' ').slice(1); // remove the command itself
+  }
+
+  sendMessage(chatId: string, text: string) {
+    this.bot.telegram.sendMessage(chatId, text);
   }
 }

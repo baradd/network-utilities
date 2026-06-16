@@ -7,5 +7,6 @@ import { IpMonitorModule } from '../ip-monitor/ip-monitor.module';
   imports: [IpMonitorModule],
   controllers: [TelegramController],
   providers: [TelegramService],
+  exports: [TelegramService],
 })
 export class TelegramModule {}
