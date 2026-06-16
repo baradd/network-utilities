@@ -1,13 +1,17 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { IpMonitorService } from '../ip-monitor/ip-monitor.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
   private bot: Telegraf;
   private readonly logger = new Logger(TelegramService.name);
 
-  constructor(private readonly ipMonitorService: IpMonitorService) {
+  constructor(
+    private readonly ipMonitorService: IpMonitorService,
+    private readonly userService: UsersService,
+  ) {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
   }
 
@@ -26,7 +30,7 @@ export class TelegramService implements OnModuleInit {
   }
 
   private registerCommands() {
-    this.bot.start((ctx) =>
+    this.bot.start((ctx) => {
       ctx.reply(
         '👋 Welcome to Network Monitor Bot!\n\n' +
           'Available commands:\n' +
@@ -36,8 +40,28 @@ export class TelegramService implements OnModuleInit {
           '/dns <host> [dnsServer] — DNS lookup\n' +
           '/portscan <host> <startPort> <endPort> — Port range scan\n' +
           '/traceroute <host> — Traceroute\n',
-      ),
-    );
+      );
+      this.userService
+        .upsert(
+          { telegram: { chatId: ctx.chat.id } }, // find by
+          {
+            firstName: ctx.from.first_name,
+            lastName: ctx.from.last_name,
+            telegram: {
+              chatId: ctx.chat.id,
+              firstName: ctx.from.first_name,
+              lastName: ctx.from.last_name,
+              username: ctx.from.username,
+              isBot: ctx.from.is_bot,
+              languageCode: ctx.from.language_code,
+              chatType: ctx.chat.type,
+            },
+          },
+        )
+        .catch((error) =>
+          this.logger.error('Failed to save user and telegram profile', error),
+        );
+    });
 
     this.bot.command('ping', async (ctx) => {
       const args = this.parseArgs(ctx);
