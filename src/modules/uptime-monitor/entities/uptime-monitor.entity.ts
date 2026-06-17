@@ -1,6 +1,7 @@
 import { UptimeStatus } from 'src/common/consts/uptime-status.enum';
 import { BaseEntity } from 'src/common/crud/base.entity';
-import { Column, Entity } from 'typeorm';
+import { User } from 'src/modules/users/entities/user.entity';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class UptimeMonitor extends BaseEntity {
@@ -30,4 +31,8 @@ export class UptimeMonitor extends BaseEntity {
 
   @Column({ default: 0 })
   consecutiveFailures: number;
+
+  @ManyToOne(() => User, (user) => user.upTimeMonitors)
+  @JoinColumn()
+  user: User;
 }

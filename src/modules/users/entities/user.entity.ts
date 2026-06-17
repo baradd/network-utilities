@@ -1,6 +1,7 @@
 import { BaseEntity } from 'src/common/crud/base.entity';
 import { TelegramProfile } from 'src/modules/telegram/entities/telegram-profile.entity';
-import { Column, Entity, OneToOne } from 'typeorm';
+import { UptimeMonitor } from 'src/modules/uptime-monitor/entities/uptime-monitor.entity';
+import { Column, Entity, OneToMany, OneToOne } from 'typeorm';
 
 @Entity()
 export class User extends BaseEntity {
@@ -21,4 +22,7 @@ export class User extends BaseEntity {
 
   @OneToOne(() => TelegramProfile, (profile) => profile.user, { cascade: true })
   telegram?: TelegramProfile;
+
+  @OneToMany(() => UptimeMonitor, (uptimeMonitor) => uptimeMonitor.user)
+  upTimeMonitors?: UptimeMonitor[];
 }
