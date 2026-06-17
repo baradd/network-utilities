@@ -6,6 +6,8 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { ConfigModule } from '@nestjs/config';
 import { SqliteModule } from './core/database/sqlite.module';
 import { UsersModule } from './modules/users/users.module';
+import { UptimeMonitorModule } from './modules/uptime-monitor/uptime-monitor.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { UsersModule } from './modules/users/users.module';
     TelegramModule,
     SqliteModule,
     UsersModule,
+    UptimeMonitorModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true, // no need to import ConfigModule in every module
     }),

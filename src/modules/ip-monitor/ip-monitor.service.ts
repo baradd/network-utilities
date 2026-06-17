@@ -11,6 +11,7 @@ import {
 } from './dtos/scan-range-port-response.dto';
 import { TraceHop, TracerouteResponse } from './dtos/traceroute-response.dto';
 import { spawn } from 'child_process';
+import { UptimeStatus } from 'src/common/consts/uptime-status.enum';
 
 @Injectable()
 export class IpMonitorService {
@@ -255,13 +256,13 @@ export class IpMonitorService {
 
       const responseTime = Date.now() - start;
       return {
-        status: response.status < 500 ? 'up' : 'down',
+        status: response.status < 500 ? UptimeStatus.UP : UptimeStatus.DOWN,
         statusCode: response.status,
         responseTime,
       };
     } catch (error) {
       return {
-        status: 'down',
+        status: UptimeStatus.DOWN,
         responseTime: Date.now() - start,
         error: error instanceof Error ? error.message : String(error),
       };
