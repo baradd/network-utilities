@@ -6,11 +6,13 @@ import { UsersModule } from '../users/users.module';
 import { TelegramProfile } from './entities/telegram-profile.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TelegramRepository } from './repositories/telegram.repository';
+import { UptimeMonitorModule } from '../uptime-monitor/uptime-monitor.module';
 
 @Module({
   imports: [
     IpMonitorModule,
     UsersModule,
+    UptimeMonitorModule,
     TypeOrmModule.forFeature([TelegramProfile]),
   ],
   controllers: [TelegramController],

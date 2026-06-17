@@ -2,6 +2,9 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { IpMonitorService } from '../ip-monitor/ip-monitor.service';
 import { UsersService } from '../users/users.service';
+import { UptimeMonitorService } from '../uptime-monitor/uptime-monitor.service';
+import { TelegramRepository } from './repositories/telegram.repository';
+import { TelegramProfile } from './entities/telegram-profile.entity';
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -11,6 +14,8 @@ export class TelegramService implements OnModuleInit {
   constructor(
     private readonly ipMonitorService: IpMonitorService,
     private readonly userService: UsersService,
+    private readonly uptimeMonitorService: UptimeMonitorService,
+    private readonly telegramRepository: TelegramRepository,
   ) {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
   }
@@ -186,6 +191,65 @@ export class TelegramService implements OnModuleInit {
         { parse_mode: 'HTML' },
       );
     });
+
+    this.bot.command('addmonitor', async (ctx) => {
+      const args = this.parseArgs(ctx);
+      if (args.length < 2)
+        return ctx.reply('Usage: /addmonitor <url> <name> [intervalMinutes]');
+
+      let [url, name, interval] = args;
+      if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+
+      await this.uptimeMonitorService.create({
+        url,
+        name,
+        intervalMinutes: interval ? +interval : 5,
+      });
+      ctx.reply(`✅ Monitor added for ${url} every ${interval ?? 5} minutes`);
+    });
+
+    this.bot.command('monitors', async (ctx) => {
+      const chatId = ctx.chat.id;
+      const telegramProfile: TelegramProfile | null =
+        await this.telegramRepository.findOneBy({
+          chatId,
+        })!;
+      const monitors = await this.uptimeMonitorService.findAll({
+        user: telegramProfile?.user,
+      });
+
+      if (!monitors.length)
+        return ctx.reply('No monitors yet. Use /addmonitor <url> <name>');
+
+      const list = monitors
+        .map(
+          (m) =>
+            `${m.lastStatus === 'up' ? '✅' : '🔴'} [${m.id}] ${m.name}\n` +
+            `   ${m.url}\n` +
+            `   Every ${m.intervalMinutes}min | Last: ${m.lastStatusCode ?? '?'} in ${m.lastResponseTime ?? '?'}ms`,
+        )
+        .join('\n\n');
+
+      ctx.reply(`📋 Monitors:\n\n${list}`);
+    });
+  }
+
+  private registerUptimeAlerts() {
+    // this.uptimeMonitorService.onDown(async (monitor, result) => {
+    //   await this.sendMessage(
+    //     `🔴 DOWN: ${monitor.name}\n` +
+    //     `URL: ${monitor.url}\n` +
+    //     `Status: ${result.statusCode ?? 'No response'}\n` +
+    //     `Error: ${result.error ?? '-'}`,
+    //   );
+    // });
+    // this.uptimeService.onRecover(async (monitor, result) => {
+    //   await this.notifyAll(
+    //     `✅ RECOVERED: ${monitor.name}\n` +
+    //     `URL: ${monitor.url}\n` +
+    //     `Response time: ${result.responseTime}ms`,
+    //   );
+    // });
   }
 
   private parseArgs(ctx: Context): string[] {

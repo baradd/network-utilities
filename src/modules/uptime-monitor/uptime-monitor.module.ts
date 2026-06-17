@@ -10,5 +10,6 @@ import { UptimeMonitor } from './entities/uptime-monitor.entity';
   imports: [IpMonitorModule, TypeOrmModule.forFeature([UptimeMonitor])],
   controllers: [UptimeMonitorController],
   providers: [UptimeMonitorService, UptimeMonitorRepository],
+  exports: [UptimeMonitorService],
 })
 export class UptimeMonitorModule {}
