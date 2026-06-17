@@ -232,6 +232,20 @@ export class TelegramService implements OnModuleInit {
 
       ctx.reply(`📋 Monitors:\n\n${list}`);
     });
+
+    this.bot.command('checkmymonitor', async (ctx) => {
+      const args = this.parseArgs(ctx);
+      if (!args[0]) return ctx.reply('Usage: /checkmonitor <id>');
+
+      const monitor = await this.uptimeMonitorService.findOne(+args[0]);
+      const result = await this.uptimeMonitorService.checkUrl(monitor.url);
+
+      ctx.reply(
+        `${result.status === 'up' ? '✅' : '🔴'} ${monitor.name}\n` +
+          `Status: ${result.statusCode ?? 'No response'}\n` +
+          `Response time: ${result.responseTime}ms`,
+      );
+    });
   }
 
   private registerUptimeAlerts() {
