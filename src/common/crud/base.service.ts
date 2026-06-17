@@ -7,8 +7,11 @@ import { BaseEntity } from './base.entity';
 export abstract class BaseService<T extends BaseEntity> {
   constructor(protected readonly repository: BaseRepository<T>) {}
 
-  findAll(): Promise<T[]> {
-    return this.repository.findAll();
+  async findAll(
+    where: FindOptionsWhere<T> | FindOptionsWhere<T>[],
+    relations?: Record<string, any>,
+  ) {
+    return this.repository.findAll(where, relations);
   }
 
   async findOne(id: number): Promise<T> {

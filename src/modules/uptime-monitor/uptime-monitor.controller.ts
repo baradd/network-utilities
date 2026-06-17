@@ -27,7 +27,7 @@ export class UptimeMonitorController {
   @Get()
   @ApiOperation({ summary: 'List all monitors' })
   findAll() {
-    return this.uptimeService.findAll();
+    return this.uptimeService.findAll({});
   }
 
   @Get(':id')
